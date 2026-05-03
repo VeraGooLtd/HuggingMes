@@ -162,12 +162,6 @@ if [ -n "${CUSTOM_BASE_URL:-}" ]; then
   [ -n "$LLM_API_KEY" ] && export OPENAI_API_KEY="${OPENAI_API_KEY:-$LLM_API_KEY}"
 fi
 
-if [ -z "$MODEL_FOR_CONFIG" ]; then
-  echo "Missing LLM_MODEL or HERMES_MODEL."
-  echo "Add it in HF Spaces -> Settings -> Variables or Secrets."
-  exit 1
-fi
-
 export MODEL_FOR_CONFIG PROVIDER_FOR_CONFIG
 export CUSTOM_BASE_URL="${CUSTOM_BASE_URL:-}"
 export CUSTOM_API_KEY="${CUSTOM_API_KEY:-${LLM_API_KEY:-}}"
@@ -195,12 +189,20 @@ try:
 except FileNotFoundError:
     config = {}
 
-model = config.setdefault("model", {})
-model["default"] = os.environ["MODEL_FOR_CONFIG"]
-model["provider"] = os.environ["PROVIDER_FOR_CONFIG"]
+model_name = os.environ.get("MODEL_FOR_CONFIG", "").strip()
+provider_name = os.environ.get("PROVIDER_FOR_CONFIG", "").strip()
+
+if model_name:
+    model = config.setdefault("model", {})
+    model["default"] = model_name
+    if provider_name:
+        model["provider"] = provider_name
+else:
+    model = config.get("model", {})
+    print("No LLM_MODEL/HERMES_MODEL set; leaving Hermes model config unchanged.")
 
 custom_base = os.environ.get("CUSTOM_BASE_URL", "").strip()
-if custom_base:
+if custom_base and model_name:
     model["base_url"] = custom_base.rstrip("/")
     if os.environ.get("CUSTOM_API_KEY"):
         model["api_key"] = os.environ["CUSTOM_API_KEY"]
@@ -235,8 +237,8 @@ path.chmod(0o600)
 PY
 
 echo ""
-echo "Hermes model : ${MODEL_FOR_CONFIG}"
-echo "Provider     : ${PROVIDER_FOR_CONFIG}"
+echo "Hermes model : ${MODEL_FOR_CONFIG:-using Hermes default/restored config}"
+echo "Provider     : ${PROVIDER_FOR_CONFIG:-using Hermes default/restored config}"
 echo "Public port  : ${PUBLIC_PORT}"
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
   echo "Telegram     : enabled"

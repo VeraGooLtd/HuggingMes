@@ -11,7 +11,7 @@ secrets:
   - name: LLM_API_KEY
     description: "Your LLM provider API key. HuggingMess maps it to the right Hermes provider env var."
   - name: LLM_MODEL
-    description: "Model ID, e.g. openrouter/anthropic/claude-sonnet-4 or anthropic/claude-opus-4.6."
+    description: "Optional model ID override, e.g. openrouter/anthropic/claude-sonnet-4 or anthropic/claude-opus-4.6."
   - name: TELEGRAM_BOT_TOKEN
     description: "Telegram bot token from @BotFather."
   - name: TELEGRAM_ALLOWED_USERS
@@ -37,7 +37,7 @@ HuggingMess runs [Nous Research Hermes Agent](https://github.com/NousResearch/he
 
 | Secret | Required | Notes |
 | :--- | :--- | :--- |
-| `LLM_MODEL` | Yes | Examples: `openrouter/anthropic/claude-sonnet-4`, `anthropic/claude-opus-4.6`, `google/gemini-2.5-flash` |
+| `LLM_MODEL` | Optional | Model override. If unset, HuggingMess leaves Hermes default/restored config alone. |
 | `LLM_API_KEY` | Usually | Used to populate the provider-specific env var automatically |
 | `TELEGRAM_BOT_TOKEN` | For Telegram | Bot token from BotFather |
 | `TELEGRAM_ALLOWED_USERS` | Recommended | Comma-separated numeric Telegram user IDs |
