@@ -3,6 +3,11 @@ set -euo pipefail
 
 umask 0077
 
+# ════════════════════════════════════════════════════════════════
+# HuggingMess — Hermes Gateway for HF Spaces
+# ════════════════════════════════════════════════════════════════
+
+# ── Startup Banner ──
 APP_DIR="${HUGGINGMESS_APP_DIR:-/opt/huggingmess}"
 HERMES_HOME="${HERMES_HOME:-/opt/data}"
 PUBLIC_PORT="${PORT:-7861}"
@@ -20,11 +25,17 @@ export API_SERVER_PORT="$GATEWAY_API_PORT"
 export GATEWAY_HEALTH_URL="${GATEWAY_HEALTH_URL:-http://127.0.0.1:${GATEWAY_API_PORT}}"
 export TELEGRAM_WEBHOOK_PORT
 
+echo ""
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║        💬 HuggingMess Hermes Gateway     ║"
+echo "  ╚══════════════════════════════════════════╝"
+echo ""
+
 if [ -z "${API_SERVER_KEY:-}" ]; then
   if [ -n "${GATEWAY_TOKEN:-}" ]; then
     export API_SERVER_KEY="$GATEWAY_TOKEN"
   else
-    API_SERVER_KEY="$(python - <<'PY'
+    API_SERVER_KEY="$(python3 - <<'PY'
 import secrets
 print(secrets.token_urlsafe(32))
 PY
@@ -34,17 +45,13 @@ PY
   fi
 fi
 
-echo ""
-echo "  =========================================="
-echo "           HuggingMess Hermes Gateway"
-echo "  =========================================="
-echo ""
-
+# ── Setup directories ──
 mkdir -p "$HERMES_HOME"/{cron,sessions,logs,hooks,memories,skills,skins,plans,workspace,home}
 
+# ── Restore workspace/state from HF Dataset ──
 if [ -n "${HF_TOKEN:-}" ]; then
   echo "Restoring Hermes state from HF Dataset..."
-  python "$APP_DIR/hermes-sync.py" restore || true
+  python3 "$APP_DIR/hermes-sync.py" restore || true
 else
   echo "HF_TOKEN not set - dataset persistence is disabled."
 fi
@@ -54,7 +61,7 @@ export CLOUDFLARE_WORKERS_TOKEN
 if [ -n "${CLOUDFLARE_WORKERS_TOKEN:-}" ] || [ -n "${CLOUDFLARE_PROXY_URL:-}" ]; then
   export CLOUDFLARE_PROXY_DEBUG="${CLOUDFLARE_PROXY_DEBUG:-false}"
   echo "Preparing Cloudflare Telegram proxy..."
-  python "$APP_DIR/cloudflare-proxy-setup.py" || true
+  python3 "$APP_DIR/cloudflare-proxy-setup.py" || true
   if [ -f "$CF_PROXY_ENV_FILE" ]; then
     . "$CF_PROXY_ENV_FILE"
   fi
@@ -62,7 +69,7 @@ fi
 
 if [ -n "${CLOUDFLARE_WORKERS_TOKEN:-}" ]; then
   echo "Preparing Cloudflare Keepalive worker..."
-  python "$APP_DIR/cloudflare-keepalive-setup.py" || true
+  python3 "$APP_DIR/cloudflare-keepalive-setup.py" || true
 fi
 
 if [ -n "${TELEGRAM_USER_IDS:-}" ] && [ -z "${TELEGRAM_ALLOWED_USERS:-}" ]; then
@@ -83,7 +90,7 @@ if [ -n "${TELEGRAM_WEBHOOK_URL:-}" ] && [ -z "${TELEGRAM_WEBHOOK_SECRET:-}" ]; 
     export TELEGRAM_WEBHOOK_SECRET
     TELEGRAM_WEBHOOK_SECRET="$(cat "$SECRET_FILE")"
   else
-    TELEGRAM_WEBHOOK_SECRET="$(python - <<'PY'
+    TELEGRAM_WEBHOOK_SECRET="$(python3 - <<'PY'
 import secrets
 print(secrets.token_hex(32))
 PY
@@ -183,7 +190,8 @@ if [ -n "${CLOUDFLARE_PROXY_URL:-}" ] && [ -z "$TELEGRAM_BASE_URL" ]; then
   export TELEGRAM_BASE_FILE_URL="${CLOUDFLARE_PROXY_URL}/file/bot"
 fi
 
-python - <<'PY'
+# ── Build config ──
+python3 - <<'PY'
 import os
 from pathlib import Path
 
@@ -243,22 +251,44 @@ path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 path.chmod(0o600)
 PY
 
+# ── Startup Summary ──
+echo ""
+echo "Model     : ${MODEL_FOR_CONFIG:-unset}"
+echo "Provider  : ${PROVIDER_FOR_CONFIG:-unset}"
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  echo "Telegram  : enabled"
+else
+  echo "Telegram  : not configured"
+fi
+if [ -n "${HF_TOKEN:-}" ]; then
+  echo "Backup    : ${BACKUP_DATASET} (every ${SYNC_INTERVAL:-180}s)"
+else
+  echo "Backup    : disabled"
+fi
+if [ -n "${CLOUDFLARE_PROXY_URL:-}" ]; then
+  echo "Proxy     : ${CLOUDFLARE_PROXY_URL}"
+fi
+echo "Dashboard : http://127.0.0.1:${DASHBOARD_PORT}"
+echo "Gateway   : http://127.0.0.1:${GATEWAY_API_PORT}"
+echo ""
 
+# ── Trap SIGTERM for graceful shutdown ──
 graceful_shutdown() {
   echo "Shutting down HuggingMess..."
   if [ -n "${HF_TOKEN:-}" ]; then
-    python "$APP_DIR/hermes-sync.py" sync-once || echo "Warning: shutdown sync failed."
+    python3 "$APP_DIR/hermes-sync.py" sync-once || echo "Warning: shutdown sync failed."
   fi
   kill $(jobs -p) 2>/dev/null || true
   exit 0
 }
 trap graceful_shutdown SIGTERM SIGINT
 
+# ── Start background services ──
 node "$APP_DIR/health-server.js" &
 HEALTH_PID=$!
 
 if [ -n "${WEBHOOK_URL:-}" ]; then
-  python - <<'PY' >/dev/null 2>&1 &
+  python3 - <<'PY' >/dev/null 2>&1 &
 import json, os, urllib.request
 body = json.dumps({
     "event": "restart",
@@ -275,6 +305,7 @@ echo "Launching Hermes dashboard on 127.0.0.1:${DASHBOARD_PORT}..."
 (hermes dashboard --host 127.0.0.1 --insecure 2>&1 | tee -a "$HERMES_HOME/logs/dashboard.log") &
 DASHBOARD_PID=$!
 
+# ── Launch gateway ──
 echo "Launching Hermes gateway..."
 (hermes gateway run 2>&1 | tee -a "$HERMES_HOME/logs/gateway.log") &
 GATEWAY_PID=$!
@@ -301,7 +332,7 @@ if [ "$ready" != "true" ]; then
 fi
 
 if [ -n "${HF_TOKEN:-}" ]; then
-  python -u "$APP_DIR/hermes-sync.py" loop &
+  python3 -u "$APP_DIR/hermes-sync.py" loop &
 fi
 
 wait "$GATEWAY_PID"
