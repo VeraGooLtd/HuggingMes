@@ -146,10 +146,16 @@ case "$MODEL_PREFIX" in
   openai|openai-codex)
     [ -n "$LLM_API_KEY" ] && export OPENAI_API_KEY="${OPENAI_API_KEY:-$LLM_API_KEY}"
     ;;
-  google|gemini)
+  google)
     [ -n "$LLM_API_KEY" ] && export GOOGLE_API_KEY="${GOOGLE_API_KEY:-$LLM_API_KEY}" GEMINI_API_KEY="${GEMINI_API_KEY:-$LLM_API_KEY}"
-    [ "$PROVIDER_FOR_CONFIG" = "auto" ] && PROVIDER_FOR_CONFIG="gemini"
-    MODEL_FOR_CONFIG="${MODEL_INPUT#*/}"
+    # Keep full "google/model-name" — Hermes infers provider from prefix.
+    # Don't set PROVIDER_FOR_CONFIG; a separate provider field conflicts.
+    MODEL_FOR_CONFIG="$MODEL_INPUT"
+    ;;
+  gemini)
+    [ -n "$LLM_API_KEY" ] && export GOOGLE_API_KEY="${GOOGLE_API_KEY:-$LLM_API_KEY}" GEMINI_API_KEY="${GEMINI_API_KEY:-$LLM_API_KEY}"
+    # Normalize "gemini/model" → "google/model" for Hermes.
+    MODEL_FOR_CONFIG="google/${MODEL_INPUT#gemini/}"
     ;;
   deepseek)
     [ -n "$LLM_API_KEY" ] && export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-$LLM_API_KEY}"
@@ -242,9 +248,11 @@ provider_name = os.environ.get("PROVIDER_FOR_CONFIG", "").strip()
 
 if model_name:
     model = config.setdefault("model", {})
-    model.setdefault("default", model_name)
-    if provider_name:
-        model.setdefault("provider", provider_name)
+    model["default"] = model_name                          # always from env — deploy-time setting
+    if provider_name and provider_name != "auto":
+        model["provider"] = provider_name                  # explicit provider (openrouter, huggingface, custom…)
+    else:
+        model.pop("provider", None)                        # let Hermes infer from model-name prefix
 else:
     model = config.get("model", {})
     print("No LLM_MODEL/HERMES_MODEL set; leaving Hermes model config unchanged.")
