@@ -566,7 +566,11 @@ const server = http.createServer(async (req, res) => {
 
   if (path === "/health" || path === `${APP_BASE}/health`) {
     const data = await statusPayload();
-    res.writeHead(data.ok ? 200 : 503, { "content-type": "application/json" });
+    // Always 200 — health server up means the app is running.
+    // Gateway readiness is in the JSON body (gateway: true/false).
+    // Returning 503 here caused Docker HEALTHCHECK to fail during gateway
+    // startup, keeping HF Space stuck in RUNNING_APP_STARTING indefinitely.
+    res.writeHead(200, { "content-type": "application/json" });
     res.end(
       JSON.stringify({
         ok: data.ok,
