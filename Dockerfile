@@ -97,7 +97,6 @@ ENV HERMES_HOME=/opt/data \
 
 EXPOSE 7861
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
-  CMD curl -fsS http://localhost:7861/health || exit 1
+HEALTHCHECK NONE
 
 CMD ["/opt/huggingmes/start.sh"]
