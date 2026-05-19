@@ -37,6 +37,8 @@ COPY --chown=hermes:hermes health-server.js /opt/huggingmes/health-server.js
 COPY --chown=hermes:hermes hermes-sync.py /opt/huggingmes/hermes-sync.py
 COPY --chown=hermes:hermes cloudflare-proxy-setup.py /opt/huggingmes/cloudflare-proxy-setup.py
 COPY --chown=hermes:hermes cloudflare-keepalive-setup.py /opt/huggingmes/cloudflare-keepalive-setup.py
+COPY --chown=hermes:hermes env-builder.html /opt/huggingmes/env-builder.html
+COPY --chown=hermes:hermes env-builder.js /opt/huggingmes/env-builder.js
 
 RUN chmod +x \
     /opt/huggingmes/start.sh \

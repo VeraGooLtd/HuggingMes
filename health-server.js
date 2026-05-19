@@ -537,6 +537,7 @@ function renderDashboard(data) {
     <div class="hero-buttons">
       <a class="hero-action" href="${APP_BASE}/" target="_blank" rel="noopener noreferrer">Open Hermes Agent →</a>
       <a class="hero-action secondary" href="/terminal/" target="_blank" rel="noopener noreferrer">Open Terminal →</a>
+      <a class="hero-action secondary" href="/env-builder" target="_blank" rel="noopener noreferrer">ENV Builder →</a>
     </div>
     <section class="overview">
       ${tiles}
@@ -585,6 +586,30 @@ const server = http.createServer(async (req, res) => {
     const data = await statusPayload();
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(data, null, 2));
+    return;
+  }
+
+  if (path === "/env-builder" || path === "/env-builder/") {
+    try {
+      const html = fs.readFileSync(require("path").join(__dirname, "env-builder.html"), "utf8");
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(html);
+    } catch (e) {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("env-builder.html not found");
+    }
+    return;
+  }
+
+  if (path === "/env-builder.js") {
+    try {
+      const js = fs.readFileSync(require("path").join(__dirname, "env-builder.js"), "utf8");
+      res.writeHead(200, { "content-type": "application/javascript; charset=utf-8" });
+      res.end(js);
+    } catch (e) {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("env-builder.js not found");
+    }
     return;
   }
 
