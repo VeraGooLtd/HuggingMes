@@ -109,7 +109,7 @@ async function detectSpacePrivacy() {
     if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, delay));
   }
   if (!detected) {
-    console.warn(`[health-server] Privacy detection failed after ${MAX_ATTEMPTS} attempts — defaulting to ${SPACE_IS_PRIVATE ? "private" : "public"}. TIP: Set SPACE_PRIVACY=public in Space secrets to skip API detection.`);
+    console.warn(`[health-server] Privacy detection failed after ${MAX_ATTEMPTS} attempts — defaulting to ${SPACE_IS_PRIVATE ? "private" : "public"}. TIP: Set SPACE_PRIVACY=public in Space secrets.`);
   } else {
     console.log(`[health-server] Space privacy detected: ${SPACE_IS_PRIVATE ? "private" : "public"}`);
   }
@@ -225,7 +225,7 @@ function renderLoginPage(nextPath, errorMessage = "") {
   <title>HuggingMes</title>
   <style>
     :root{color-scheme:dark;--bg:#08080f;--panel:#12111b;--line:#26243a;--text:#f6f4ff;--muted:#7f7a9e;--bad:#fb7185}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);padding:24px}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:var(--bg)}
     .card{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:36px 32px;max-width:400px;width:100%;text-align:center}
     h1{margin:0 0 8px;font-size:1.4rem}
     .sub{color:var(--muted);font-size:.82rem;margin:0 0 24px}
@@ -478,8 +478,6 @@ function renderPrivateRedirect(targetUrl) {
     <div class="sub">Redirecting in 3 seconds&hellip;</div>
   </div>
   <script>
-    // Only auto-redirect when NOT inside an iframe — navigating an iframe to
-    // huggingface.co is blocked by X-Frame-Options and causes "refused to connect".
     const _inFrame = (() => { try { return window.top !== window.self; } catch { return true; } })();
     if (!_inFrame) {
       setTimeout(() => { window.location.replace(${JSON.stringify(targetUrl)}); }, 100);
@@ -557,7 +555,6 @@ function renderDashboard(data) {
       : process.env.CLOUDFLARE_WORKERS_TOKEN
         ? "Worker pending or failed"
         : "Not configured";
-  const serviceOk = data.gateway && data.dashboard;
 
   const tiles = [
     renderTile({
@@ -620,15 +617,15 @@ function renderDashboard(data) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HuggingMes</title>
   <style>
-    :root { color-scheme: dark; --bg:#08080f; --panel:#12111b; --panel2:#151421; --line:#26243a; --text:#f6f4ff; --muted:#7f7a9e; --soft:#b8b3d7; --good:#22c55e; --warn:#f5c542; --bad:#fb7185; --accent:#6557df; --accent2:#7c6cf2; }
+    :root { color-scheme: dark; --bg:#08080f; --panel:#12111b; --panel2:#151421; --line:#26243a; --text:#f6f4ff; --muted:#7f7a9e; --soft:#b8b3d7; --good:#22c55e; --warn:#f5c542; --bad:#fb7185; --accent:#5b8af5; }
     * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); font-size:13px; }
+    body { margin:0; min-height:100vh; font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); font-size:13px; line-height:1.5; }
     main { width:min(720px, calc(100% - 32px)); margin:0 auto; padding:36px 0 44px; }
     header { text-align:center; margin-bottom:22px; }
     h1 { margin:0; font-size:1.65rem; line-height:1; letter-spacing:0; }
     .subtitle { margin-top:12px; color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.14em; font-weight:800; }
     .hero-buttons { display:flex; gap:10px; margin:24px 0 20px; }
-    .hero-action { display:flex; flex:1; min-height:46px; align-items:center; justify-content:center; border-radius:8px; background:#ffffff; color:#000000; text-decoration:none; font-weight:850; font-size:.98rem; transition:background 0.15s ease; }
+    .hero-action { display:flex; flex:1; min-height:46px; align-items:center; justify-content:center; border-radius:8px; background:#ffffff; color:#000000; text-decoration:none; font-weight:850; cursor:pointer; border:0; padding:12px 20px; transition:background .15s; }
     .hero-action:hover { background:#e5e5e5; }
     .hero-action.secondary { background:var(--panel); color:var(--text); border:1px solid var(--line); }
     .hero-action.secondary:hover { background:var(--panel2); }
@@ -646,20 +643,22 @@ function renderDashboard(data) {
     .tile-value { font-size:1.12rem; font-weight:850; overflow-wrap:anywhere; }
     .tile-detail { color:var(--soft); line-height:1.45; font-size:.83rem; }
     .tile-meta { color:var(--muted); line-height:1.4; font-size:.75rem; margin-top:auto; overflow-wrap:anywhere; }
-
     code { background:#232234; border:1px solid #34324c; border-radius:6px; padding:2px 6px; color:var(--text); font-size:.9em; }
-    pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; background:#0d0d0d; border:1px solid var(--line); border-radius:7px; padding:10px; color:var(--soft); font-size:.82rem; line-height:1.45; }
+    pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; background:#0d0d0d; border:1px solid var(--line); border-radius:7px; padding:10px; color:var(--soft); font-size:.82rem; line-height:1.4; }
     .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-    .badge { display:inline-flex; align-items:center; width:max-content; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:.72rem; font-weight:850; line-height:1; text-transform:uppercase; }
+    .badge { display:inline-flex; align-items:center; width:max-content; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:.72rem; font-weight:850; line-height:1; text-align:center; }
     .badge.ok { color:var(--good); border-color:rgba(34,197,94,.34); background:rgba(34,197,94,.11); }
     .badge.warn { color:var(--warn); border-color:rgba(245,197,66,.34); background:rgba(245,197,66,.11); }
     .badge.off { color:var(--bad); border-color:rgba(251,113,133,.34); background:rgba(251,113,133,.11); }
     .badge.neutral { color:var(--soft); }
     .muted { color:var(--muted); }
-    .button { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 16px; border-radius:8px; color:#fff; background:var(--accent); text-decoration:none; font-weight:850; font-size:.9rem; }
+    .button { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 16px; border-radius:8px; color:#fff; background:var(--accent); text-decoration:none; font-weight:700; cursor:pointer; transition:opacity .15s; }
+    .button:hover { opacity:0.85; }
     .button.secondary { color:var(--text); background:#242424; border:1px solid var(--line); }
     footer { color:var(--muted); text-align:center; font-size:.74rem; margin-top:18px; }
     footer .live { color:var(--good); }
+    footer a { color:var(--accent); text-decoration:none; }
+    footer a:hover { text-decoration:underline; }
     .warn-banner { background:rgba(245,197,66,.1); border:1px solid rgba(245,197,66,.35); border-radius:8px; padding:10px 14px; margin-bottom:16px; color:var(--warn); font-size:.82rem; line-height:1.5; }
     .warn-banner strong { font-weight:700; }
     @media (max-width: 700px) { .overview { grid-template-columns:1fr; } main { width:min(100% - 22px, 720px); padding-top:28px; } }
@@ -676,11 +675,11 @@ function renderDashboard(data) {
       <a class="hero-action secondary" data-space-link="terminal" href="/terminal/">💻 Open Terminal →</a>
       <a class="hero-action secondary" data-space-link="env-builder" href="/env-builder">⚙️ ENV Builder →</a>
     </div>
-    ${syncStatus === "disabled" ? `<div class="warn-banner">⚠️ <strong>Backup is disabled.</strong> HF Spaces storage is ephemeral — all Hermes data (chats, config, memory) will be lost on every Space restart. Set <code>HF_TOKEN</code> in Space secrets to enable automatic backup.</div>` : ""}
+    ${syncStatus === "disabled" ? `<div class="warn-banner">⚠️ <strong>Backup is disabled.</strong> HF Spaces storage is ephemeral — all Hermes data (chats, config, memory) will be lost on every Space restart. Set HF_TOKEN in Space secrets to enable automatic backup.</div>` : ""}
     <section class="overview">
       ${tiles}
     </section>
-    <footer>Built by <a href="https://github.com/somratpro" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">@somratpro</a></footer>
+    <footer>Built by <a href="https://github.com/somratpro" target="_blank" rel="noopener noreferrer">@somratpro</a></footer>
   </main>
   <script>
     document.querySelectorAll('.local-time').forEach(el => {
@@ -692,7 +691,6 @@ function renderDashboard(data) {
     const inEmbeddedApp = (() => { try { return window.top !== window.self; } catch { return true; } })();
     const isDirectHfSpaceHost = /\.hf\.space$/i.test(window.location.hostname);
     const HF_SPACE_URL = ${JSON.stringify(HF_SPACE_URL)};
-    // Server-side value may be stale if privacy detection raced — syncPrivacy() corrects it.
     let SPACE_IS_PRIVATE = ${JSON.stringify(SPACE_IS_PRIVATE)};
 
     function applyLinkTargets() {
@@ -731,11 +729,10 @@ function renderDashboard(data) {
       });
     }
 
-    // Private redirect — only when NOT in iframe (huggingface.co has X-Frame-Options: DENY)
     if (SPACE_IS_PRIVATE && isDirectHfSpaceHost && !inEmbeddedApp && HF_SPACE_URL) {
       const notice = document.createElement('div');
-      notice.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#08080f;color:#f6f4ff;font-family:sans-serif;flex-direction:column;gap:16px;z-index:9999';
-      notice.innerHTML = '<span style="font-size:1.1rem">🔒 Private Space &mdash; Redirecting&hellip;</span><a href="' + HF_SPACE_URL + '" style="color:#a5b4fc;font-size:.85rem">Click here if not redirected</a>';
+      notice.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#08080f;color:#f6f4ff;font-family:sans-serif;flex-direction:column;gap:16px;z-index:9999;';
+      notice.innerHTML = '<span style="font-size:1.1rem">🔒 Private Space &mdash; Redirecting&hellip;</span><a href="' + HF_SPACE_URL + '" style="color:#a5b4fc;font-size:.85rem">Click here if not automatically redirected</a>';
       document.body.appendChild(notice);
       setTimeout(() => { window.location.replace(HF_SPACE_URL); }, 300);
     }
@@ -748,9 +745,6 @@ const server = http.createServer(async (req, res) => {
   const parsed = new URL(req.url, "http://localhost");
   const path = parsed.pathname;
 
-  // Lightweight endpoint for client-side privacy fallback.
-  // Called by dashboard JS to correct stale server-rendered SPACE_IS_PRIVATE value.
-  // No auth required — not sensitive.
   if (path === "/api/is-private") {
     if (!_privacyDetectionDone) await privacyDetectionReady;
     res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
@@ -762,14 +756,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Private Space Guard (server-side) ──
-  // Intercepts browser HTML requests from raw .hf.space hosts when the Space is private.
-  // /health and /status are always exempt so uptime monitors keep working.
   const isHtmlReq = (req.headers.accept || "").includes("text/html");
 
-  // RACE CONDITION FIX: await privacy detection before computing redirect logic.
-  // Without this, the fail-secure default (SPACE_IS_PRIVATE=true when SPACE_ID is set)
-  // causes public spaces to redirect during the brief window before API detection completes.
   if (isHtmlReq && !_privacyDetectionDone) {
     await Promise.race([
       privacyDetectionReady,
@@ -777,7 +765,6 @@ const server = http.createServer(async (req, res) => {
     ]);
   }
 
-  // In-app navigation from same origin or HF App iframe — skip private redirect.
   const referer = req.headers.referer || req.headers.referrer || "";
   const isSameOriginNav = !!(referer && typeof req.headers.host === "string" &&
     referer.startsWith(`https://${req.headers.host}`));
@@ -805,10 +792,6 @@ const server = http.createServer(async (req, res) => {
 
   if (path === "/health" || path === `${APP_BASE}/health`) {
     const data = await statusPayload();
-    // Always 200 — health server up means the app is running.
-    // Gateway readiness is in the JSON body (gateway: true/false).
-    // Returning 503 here caused Docker HEALTHCHECK to fail during gateway
-    // startup, keeping HF Space stuck in RUNNING_APP_STARTING indefinitely.
     res.writeHead(200, { "content-type": "application/json" });
     res.end(
       JSON.stringify({
@@ -836,19 +819,6 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("env-builder.html not found");
-    }
-    return;
-  }
-
-  if (path === "/env-builder.js") {
-    if (!requireAuth(req, res)) return;
-    try {
-      const js = fs.readFileSync(require("path").join(__dirname, "env-builder.js"), "utf8");
-      res.writeHead(200, { "content-type": "application/javascript; charset=utf-8" });
-      res.end(js);
-    } catch (e) {
-      res.writeHead(404, { "content-type": "text/plain" });
-      res.end("env-builder.js not found");
     }
     return;
   }
@@ -951,17 +921,8 @@ const server = http.createServer(async (req, res) => {
         res.end("JupyterLab is not running. GATEWAY_TOKEN must be set, and DEV_MODE must not be false.");
         return;
       }
-      // Inject the Jupyter token so JupyterLab skips its own login screen.
-      // User already authenticated via GATEWAY_TOKEN — no second prompt needed.
-      // JUPYTER_TOKEN env may be empty in this process (health-server starts before
-      // start_jupyter() exports it), so fall back to API_SERVER_KEY (== GATEWAY_TOKEN),
-      // which is what JupyterLab was actually started with.
       const rawJToken = (process.env.JUPYTER_TOKEN || "").trim();
       const jToken = rawJToken || API_SERVER_KEY;
-      // JupyterLab 4.x ignores the Authorization header for HTML page loads and
-      // shows its own login screen. The reliable fix is to inject ?token= into the
-      // URL for the initial HTML request — Jupyter reads it, sets the auth cookie,
-      // then redirects to the clean URL. All subsequent requests use the cookie.
       if (jToken && isHtmlReq) {
         const parsed2 = new URL(req.url, "http://localhost");
         if (!parsed2.searchParams.has("token")) {
@@ -980,7 +941,6 @@ const server = http.createServer(async (req, res) => {
   res.end("Not found");
 });
 
-// ── WebSocket upgrade (JupyterLab terminals + kernels need this) ──
 server.on("upgrade", (req, socket, head) => {
   const { pathname } = new URL(req.url, "http://localhost");
   const isJupyter = pathname === TERMINAL_BASE || pathname.startsWith(`${TERMINAL_BASE}/`);
