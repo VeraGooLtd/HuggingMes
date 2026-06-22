@@ -923,14 +923,17 @@ const server = http.createServer(async (req, res) => {
       }
       const rawJToken = (process.env.JUPYTER_TOKEN || "").trim();
       const jToken = rawJToken || API_SERVER_KEY;
-      if (jToken && isHtmlReq) {
-        const parsed2 = new URL(req.url, "http://localhost");
-        if (!parsed2.searchParams.has("token")) {
-          const sep = parsed2.search ? "&" : "?";
-          redirect(res, `${parsed2.pathname}${parsed2.search}${sep}token=${encodeURIComponent(jToken)}`);
-          return;
-        }
+      
+      // Always inject token for terminal requests to ensure JupyterLab skips login screen.
+      // This is needed regardless of Accept header — JupyterLab 4.x ignores Authorization
+      // headers for initial page loads and requires the ?token= parameter in the URL.
+      const parsed2 = new URL(req.url, "http://localhost");
+      if (jToken && !parsed2.searchParams.has("token")) {
+        const sep = parsed2.search ? "&" : "?";
+        redirect(res, `${parsed2.pathname}${parsed2.search}${sep}token=${encodeURIComponent(jToken)}`);
+        return;
       }
+      
       const overrides = jToken ? { authorization: `token ${jToken}` } : {};
       proxyRequest(req, res, JUPYTER_PORT, (p) => p, overrides);
     });
